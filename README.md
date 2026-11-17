@@ -18,6 +18,18 @@ Tested on **November 17, 2026**, with a **UGREEN US3000 (DC600)** connected over
 
 This project covers USB communication. Physical power-connector adapters had already been fitted. Reliable barrel-jack measurements were not recorded; do not use this guide to determine connector dimensions, polarity, or voltage.
 
+## Important: low-battery protection failed in testing
+
+**Use Customize time → 3 minutes. Do not rely on Until low battery with this tested setup.**
+
+In a follow-up test, the UPS was allowed to discharge until it stopped supplying power while DSM was set to **Until low battery**. The expected protection notification was not received, and after power was restored DSM reported an improper shutdown. Protection did not complete before power was lost. This is an unsatisfactory result: displaying battery charge and a 20% threshold does **not** establish reliable low-battery shutdown protection.
+
+We have not established whether the failure is in the UPS firmware, the HID low-battery report, our modified driver, or DSM's handling of it. See [TESTED.md](TESTED.md) for the distinction between the failed test and the successful fixed-timer test.
+
+The practical fallback is the **three-minute timer**, which did work in the earlier controlled test. After that timer expired, web and SSH services became inaccessible while the NAS remained powered and could still respond to ping. When mains power returned to the UPS, the web interface and services became available again without a manual power cycle; recovery appeared prompt, but was not timed. This is consistent with DSM Standby Mode, rather than a full physical power-off. Volume unmounts were not independently confirmed in the logs.
+
+Keep **Shut down UPS when the system enters Standby Mode disabled**. The fixed timer is a tested workaround, not a guarantee for every battery condition: a nearly depleted battery may not sustain the NAS for three minutes plus the time needed to enter protection. Automatic recovery after complete battery exhaustion has not been validated. We would prefer dependable low-battery protection, but cannot recommend it based on this result.
+
 ## Quick recovery after a DSM update
 
 First check whether the new DSM version already supports the UPS without modifications. Do not replace a working driver.

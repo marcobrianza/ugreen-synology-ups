@@ -13,9 +13,18 @@ Manual testing on November 17, 2026: DS225+ / DSM 7.4.1-90080 Update 1 / UGREEN 
 | DSM service started manually | usbhid-ups, upsd, and upsmon active; upsc responds |
 | Real reboot after enabling boot integration | DSM recognizes the UPS; upsc works without manually starting the service |
 | Extended test outage | Battery-mode email; web and SSH become inaccessible after three minutes |
-| Mains restored after protection | Web interface becomes accessible again; user confirms recovery |
+| Mains restored after protection | Web interface becomes accessible again without a manual power cycle; recovery appeared prompt but was not timed |
+| Until low battery, UPS discharged to loss of output power | Expected protection notification not received; DSM reported an improper shutdown after power was restored. This mode failed the test. |
 
-Service shutdown and recovery are consistent with DSM Standby Mode. Per-volume unmount events were not independently checked in the logs. Complete battery depletion and the low-battery bit at 20% were not tested.
+Service shutdown and recovery are consistent with DSM Standby Mode. Per-volume unmount events were not independently checked in the logs. A later full-discharge test with **Until low battery** failed to protect the NAS before power was lost. The low-battery HID bit was not captured during that test, so we cannot determine whether the UPS failed to assert it, the driver failed to translate it, or DSM failed to act on it. A readable 20% threshold alone is not evidence that this protection works.
+
+## Recommended operating mode after the failed low-battery test
+
+**Set Customize time to 3 minutes and click Apply. Do not rely on Until low battery in this configuration.** Keep UPS shutdown disabled.
+
+This is a disappointing limitation, not a successful low-battery shutdown test. The three-minute timer remains the practical fallback because the earlier controlled test showed service shutdown and recovery when mains returned. During standby, the NAS can remain powered and answer ping while web/SSH are unavailable. Restoring mains at the UPS input allowed services to return without a manual power cycle. The recovery delay was not measured, and per-volume unmounts were not verified.
+
+The timer still requires enough battery energy to last three minutes and complete protection. A nearly empty or degraded battery can run out sooner. Recovery following complete depletion is not validated. Reliable low-battery protection remains unresolved.
 
 ## Three important device behaviors
 
