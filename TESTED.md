@@ -1,48 +1,48 @@
-# Prove e limiti
+# Test results and limitations
 
-Collaudo manuale del 17 novembre 2026, DS225+ / DSM 7.4.1-90080 Update 1 / UGREEN US3000 2b89:ffff.
+Manual testing on November 17, 2026: DS225+ / DSM 7.4.1-90080 Update 1 / UGREEN US3000 2b89:ffff.
 
-## Risultati osservati
+## Observed results
 
-| Situazione | Risultato |
+| Condition | Result |
 |---|---|
-| Rete presente | OL DISCHRG, input 12.0 V, output 12.0 V, batteria 96-97% |
-| Rete scollegata dall'ingresso UPS | OB DISCHRG, input 0.0 V, output 12.0 V |
-| Autonomia durante una prova a batteria | 873 secondi (stima, non durata garantita) |
-| Rete ripristinata | ritorno a OL DISCHRG, input/output 12.0 V |
-| Avvio manuale servizio DSM | usbhid-ups, upsd e upsmon attivi; upsc risponde |
-| Riavvio reale dopo abilitazione al boot | pagina DSM riconosce UPS; upsc legge senza avvio manuale |
-| Blackout prolungato di prova | email di funzionamento a batteria; dopo 3 minuti web e SSH diventano inaccessibili |
-| Ritorno corrente dopo la protezione | interfaccia web torna accessibile; utente conferma ripresa del funzionamento |
+| Mains present | OL DISCHRG, input 12.0 V, output 12.0 V, battery 96–97% |
+| Mains disconnected from UPS input | OB DISCHRG, input 0.0 V, output 12.0 V |
+| Runtime reported during one battery test | 873 seconds; an estimate, not a guaranteed duration |
+| Mains restored | Return to OL DISCHRG, input/output 12.0 V |
+| DSM service started manually | usbhid-ups, upsd, and upsmon active; upsc responds |
+| Real reboot after enabling boot integration | DSM recognizes the UPS; upsc works without manually starting the service |
+| Extended test outage | Battery-mode email; web and SSH become inaccessible after three minutes |
+| Mains restored after protection | Web interface becomes accessible again; user confirms recovery |
 
-La fermata dei servizi e la successiva ripresa sono coerenti con Standby Mode di DSM. Non e stata verificata direttamente nei log la sequenza di smontaggio di ciascun volume. Non e stato simulato l'esaurimento completo della batteria o verificato il bit batteria bassa al 20%.
+Service shutdown and recovery are consistent with DSM Standby Mode. Per-volume unmount events were not independently checked in the logs. Complete battery depletion and the low-battery bit at 20% were not tested.
 
-## Tre particolarita da ricordare
+## Three important device behaviors
 
-1. **OL DISCHRG con rete presente** e il valore osservato sull'UPS. Non attivare `onlinedischarge`, perche le prove hanno verificato che il discriminante utile e OL/OB.
-2. **65535 di autonomia con rete presente** non va usato come previsione affidabile. A batteria il valore e cambiato in una stima plausibile. Si usa un timer fisso di 3 minuti.
-3. **Standby Mode non significa necessariamente spegnimento fisico**: i servizi si fermano e il NAS puo continuare a rispondere al ping. Nel collaudo SSH dava connection refused/timeout e web non rispondeva; al ritorno della rete il sistema e tornato utilizzabile.
+1. **OL DISCHRG with mains present** is the observed UPS state. Do not enable `onlinedischarge`: testing confirmed that OL/OB distinguishes mains from battery operation.
+2. **Runtime 65535 with mains present** must not be treated as a reliable duration. On battery, the value changed to a plausible estimate. A fixed three-minute protection timer is used.
+3. **Standby Mode does not necessarily power the NAS off physically.** Services stop while ping may still respond. In our test SSH returned connection refused/timeouts and the web interface stopped responding. Both recovered after mains power returned.
 
-## Ripetere il collaudo
+## Repeating the test
 
-Con servizi e lavori interrompibili, UPS carico e rete presente:
+Start with interruptible workloads, a charged UPS, and mains connected:
 
-1. Verificare OL, carica, impostazione DSM di 3 minuti e spegnimento UPS disattivato.
-2. Scollegare solo l'alimentazione **in ingresso all'UPS**. Lasciare collegati USB e alimentazione UPS → NAS.
-3. Per una prova breve, controllare OB e ripristinare la rete prima del timer.
-4. Per il collaudo completo, attendere la protezione dopo 3 minuti: l'accesso ai servizi verra interrotto.
-5. Ripristinare la rete all'ingresso dell'UPS. Attendere alcuni minuti e verificare il ritorno di DSM e lo stato OL.
+1. Check OL, battery charge, the three-minute DSM setting, and disabled UPS shutdown.
+2. Disconnect mains **from the UPS input only**. Keep USB and UPS-to-NAS power connected.
+3. For a brief test, check OB and reconnect mains before the timer expires.
+4. For a full test, wait for protection after three minutes. Access to services will be interrupted.
+5. Reconnect mains to the UPS input. Wait a few minutes, then confirm DSM recovery and OL status.
 
-Non e necessario far esaurire la batteria. Il funzionamento osservato vale per questa combinazione e questa prova, non dimostra compatibilita con altri modelli o futuri aggiornamenti.
+There is no need to exhaust the battery. These results apply to this hardware/software combination and test; they do not establish compatibility with other models or future updates.
 
-## Diagnosi rapida
+## Quick troubleshooting
 
-- `No matching HID UPS found`: verificare hash del driver e VID/PID.
-- `could not claim interface 2`: e stata usata la v1 o non e stata corretta l'impostazione Arduino.
-- Solo timer, niente batteria, OB anche con rete: v2 o mappature incomplete.
-- `upsc ... Connection refused`: controllare servizio USB e presenza di upsd; non significa da solo che USB sia guasta.
-- Funziona con `systemctl start`, non dopo reboot: verificare drop-in, symlink di boot e journal.
-- `pollonly` scompare: controllare anche `/etc.defaults/ups/ups.conf`.
-- `Permission denied`: usare sudo, la sessione SSH ordinaria non e root.
-- SCP fallisce su SFTP: usare `scp -O` dal Mac.
-- Dopo 3 minuti web/SSH non accessibili: puo essere Standby Mode, ripristinare la rete in ingresso e osservare la ripresa.
+- `No matching HID UPS found`: check the driver hash and USB VID/PID.
+- `could not claim interface 2`: v1 is installed, or the Arduino interface setting was not corrected.
+- Only timers, no battery data, OB despite mains: v2 or incomplete mappings.
+- `upsc ... Connection refused`: check the USB service and upsd process. This alone does not establish a USB fault.
+- Works after `systemctl start`, but not after reboot: check the drop-in, boot symlink, and journal.
+- `pollonly` disappears: check `/etc.defaults/ups/ups.conf` too.
+- `Permission denied`: use sudo; an ordinary SSH session is not root.
+- SCP fails on the SFTP subsystem: use `scp -O` from the Mac.
+- Web/SSH inaccessible after three minutes: this may be Standby Mode. Restore mains at the UPS input and observe recovery.

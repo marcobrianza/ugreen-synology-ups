@@ -1,15 +1,15 @@
 #!/bin/sh
 # Restore the state saved by install.sh. Does not reboot or remove the backup.
 set -eu
-[ "$(id -u)" = 0 ] || { echo 'Eseguire con sudo sh restore.sh'; exit 1; }
+[ "$(id -u)" = 0 ] || { echo 'Run with sudo sh restore.sh'; exit 1; }
 backup=/usr/local/etc/ugreen-us3000-backup
 for name in driver ups.conf ups.defaults.conf nutscan-usb.h boot-state; do
- [ -f "$backup/$name" ] || { echo "Backup mancante: $backup/$name"; exit 1; }
+ [ -f "$backup/$name" ] || { echo "Missing backup: $backup/$name"; exit 1; }
 done
 current=$(sha256sum /bin/usbhid-ups | awk '{print $1}')
 case "$current" in
  c40952698fc8b333eba260169328c533f98c4a3dc58174774b0be87b549182c8|3a14cd2a9d982ef675032a509e3396e03e5636979d70e576557c369c4fee639a) ;;
- *) echo 'Driver cambiato dopo un aggiornamento: non ripristino automaticamente vecchi file'; exit 1;;
+ *) echo 'Driver changed after an update: refusing to restore old files automatically'; exit 1;;
 esac
 systemctl stop ups-usb.service
 cp -p "$backup/driver" /bin/usbhid-ups
@@ -22,5 +22,5 @@ if [ "$(cat "$backup/boot-state")" = not-enabled ]; then
  rm -f /etc/systemd/system/syno-bootup-done.target.wants/ups-usb.service
 fi
 systemctl daemon-reload
-echo 'Stato precedente ripristinato; backup conservato. Il driver originale potrebbe non riconoscere UGREEN.'
-echo 'Il servizio rimane fermo: verificare configurazione prima di riavviarlo.'
+echo 'Previous state restored; backup retained. The original driver may not recognize UGREEN.'
+echo 'The service remains stopped: review the configuration before starting it.'

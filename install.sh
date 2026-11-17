@@ -1,23 +1,23 @@
 #!/bin/sh
 # Install only the exact, tested DSM driver. Run: sudo sh install.sh
 set -eu
-[ "$(id -u)" = 0 ] || { echo 'Eseguire con sudo sh install.sh'; exit 1; }
+[ "$(id -u)" = 0 ] || { echo 'Run with sudo sh install.sh'; exit 1; }
 cd "$(dirname "$0")"
 stock=c40952698fc8b333eba260169328c533f98c4a3dc58174774b0be87b549182c8
 patched=3a14cd2a9d982ef675032a509e3396e03e5636979d70e576557c369c4fee639a
 hash() { sha256sum "$1" | awk '{print $1}'; }
-[ "$(uname -m)" = x86_64 ] || { echo 'Architettura non supportata'; exit 1; }
-[ "$(hash usbhid-ups-ugreen-v3)" = "$patched" ] || { echo 'File patchato non valido'; exit 1; }
+[ "$(uname -m)" = x86_64 ] || { echo 'Unsupported architecture'; exit 1; }
+[ "$(hash usbhid-ups-ugreen-v3)" = "$patched" ] || { echo 'Invalid patched binary'; exit 1; }
 current=$(hash /bin/usbhid-ups)
-case "$current" in "$stock"|"$patched") ;; *) echo 'Driver DSM diverso: NON installo il vecchio binario. Vedi PATCHING.md.'; exit 1;; esac
-[ "$(hash /usr/bin/usbhid-ups)" = "$current" ] || { echo '/bin e /usr/bin hanno driver diversi: verificare prima di procedere'; exit 1; }
+case "$current" in "$stock"|"$patched") ;; *) echo 'Different DSM driver: refusing to install the old binary. See PATCHING.md.'; exit 1;; esac
+[ "$(hash /usr/bin/usbhid-ups)" = "$current" ] || { echo '/bin and /usr/bin contain different drivers: investigate before proceeding'; exit 1; }
 for file in /etc/ups/ups.conf /etc.defaults/ups/ups.conf /etc/ups/nutscan-usb.h; do
- [ -f "$file" ] || { echo "File mancante: $file"; exit 1; }
+ [ -f "$file" ] || { echo "Missing file: $file"; exit 1; }
 done
-grep -q 'Terminating entry' /etc/ups/nutscan-usb.h || { echo 'Formato lista USB cambiato'; exit 1; }
+grep -q 'Terminating entry' /etc/ups/nutscan-usb.h || { echo 'USB device-list format has changed'; exit 1; }
 if command -v upsc >/dev/null 2>&1; then
  status=$(upsc ups@localhost ups.status 2>/dev/null || true)
- case " $status " in *' OB '*) echo 'UPS a batteria: ripristinare la rete prima di installare'; exit 1;; esac
+ case " $status " in *' OB '*) echo 'UPS is on battery: restore mains before installing'; exit 1;; esac
 fi
 backup=/usr/local/etc/ugreen-us3000-backup
 mkdir -p "$backup"
@@ -46,5 +46,5 @@ systemctl daemon-reload
 systemctl enable ups-usb.service || systemctl is-enabled --quiet ups-usb.service
 systemctl start ups-usb.service
 upsc ups@localhost
-echo 'Controllare DSM: supporto UPS USB, 3 minuti, spegnimento UPS disattivato. Premere Apply.'
-echo "Backup: $backup (puo contenere impostazioni private: non pubblicarlo)."
+echo 'Check DSM: USB UPS support enabled, 3 minutes, UPS shutdown disabled. Click Apply.'
+echo "Backup: $backup (may contain private settings: do not publish it)."
