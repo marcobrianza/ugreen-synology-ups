@@ -15,6 +15,7 @@ Manual testing on November 17, 2026: DS225+ / DSM 7.4.1-90080 Update 1 / UGREEN 
 | Extended test outage | Battery-mode email; web and SSH become inaccessible after three minutes |
 | Mains restored after protection | Web interface becomes accessible again without a manual power cycle; recovery appeared prompt but was not timed |
 | Until low battery, UPS discharged to loss of output power | Expected protection notification not received; DSM reported an improper shutdown after power was restored. This mode failed the test. |
+| Mains restored after complete UPS depletion and NAS power-off | User reports about an hour of discharge until everything was off. Reconnecting mains to the UPS automatically started the NAS again, without pressing its power button. |
 
 Service shutdown and recovery are consistent with DSM Standby Mode. Per-volume unmount events were not independently checked in the logs. A later full-discharge test with **Until low battery** failed to protect the NAS before power was lost. The low-battery HID bit was not captured during that test, so we cannot determine whether the UPS failed to assert it, the driver failed to translate it, or DSM failed to act on it. A readable 20% threshold alone is not evidence that this protection works.
 
@@ -24,7 +25,13 @@ Service shutdown and recovery are consistent with DSM Standby Mode. Per-volume u
 
 This is a disappointing limitation, not a successful low-battery shutdown test. The three-minute timer remains the practical fallback because the earlier controlled test showed service shutdown and recovery when mains returned. During standby, the NAS can remain powered and answer ping while web/SSH are unavailable. Restoring mains at the UPS input allowed services to return without a manual power cycle. The recovery delay was not measured, and per-volume unmounts were not verified.
 
-The timer still requires enough battery energy to last three minutes and complete protection. A nearly empty or degraded battery can run out sooner. Recovery following complete depletion is not validated. Reliable low-battery protection remains unresolved.
+The timer still requires enough battery energy to last three minutes and complete protection. A nearly empty or degraded battery can run out sooner. Automatic restart following complete depletion **was observed**: after approximately one hour of discharge, both UPS and NAS were off; reconnecting mains caused the NAS to start automatically. The preceding shutdown was still improper in the Until low battery test. Successful restart must not be confused with successful data protection. Reliable low-battery protection remains unresolved.
+
+## Power recovery after complete depletion
+
+Two recovery paths were observed: services resumed when mains returned during standby, and the NAS automatically started after the UPS had fully depleted and everything had powered off. The second test lasted about an hour before mains was reconnected. Neither recovery time was measured.
+
+Check DSM's **Hardware & Power → General → Restart automatically after a power failure** setting (wording may vary). This is the relevant power-recovery option; its state was not separately recorded during testing, so the observation establishes automatic restart in this setup, not a comparison with the option disabled. Keep the separate **Shut down UPS when the system enters Standby Mode** option disabled.
 
 ## Three important device behaviors
 

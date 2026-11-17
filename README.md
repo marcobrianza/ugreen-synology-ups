@@ -28,7 +28,7 @@ We have not established whether the failure is in the UPS firmware, the HID low-
 
 The practical fallback is the **three-minute timer**, which did work in the earlier controlled test. After that timer expired, web and SSH services became inaccessible while the NAS remained powered and could still respond to ping. When mains power returned to the UPS, the web interface and services became available again without a manual power cycle; recovery appeared prompt, but was not timed. This is consistent with DSM Standby Mode, rather than a full physical power-off. Volume unmounts were not independently confirmed in the logs.
 
-Keep **Shut down UPS when the system enters Standby Mode disabled**. The fixed timer is a tested workaround, not a guarantee for every battery condition: a nearly depleted battery may not sustain the NAS for three minutes plus the time needed to enter protection. Automatic recovery after complete battery exhaustion has not been validated. We would prefer dependable low-battery protection, but cannot recommend it based on this result.
+Keep **Shut down UPS when the system enters Standby Mode disabled**. The fixed timer is a tested workaround, not a guarantee for every battery condition: a nearly depleted battery may not sustain the NAS for three minutes plus the time needed to enter protection. Automatic restart after complete battery exhaustion **has been observed**: the user left the UPS discharging for about an hour until both UPS and NAS were fully off, then restored mains to the UPS and the NAS started again without pressing its power button. This confirms power recovery in the tested setup, but does not make the preceding low-battery shutdown safe. We would prefer dependable low-battery protection, but cannot recommend it based on this result.
 
 ## Quick recovery after a DSM update
 
@@ -72,6 +72,7 @@ Open Control Panel → Hardware & Power → UPS:
 - **Shut down UPS when the system enters Standby Mode**: **disabled**. The v3 driver monitors the UPS but does not include UPS shutdown command mappings.
 - **Enable network UPS server**: unnecessary for this NAS alone.
 - Click **Apply**.
+- Under **Hardware & Power → General**, check **Restart automatically after a power failure** (wording may vary). This is the DSM power-recovery setting relevant to restarting after actual loss of power. Its exact state was not recorded during this test; automatic restart itself was observed. This setting is separate from the disabled UPS shutdown option.
 
 Do not add `onlinedischarge`. This UPS reports `DISCHRG` while mains power is present. That option could turn the normal state into a false power-failure indication.
 
